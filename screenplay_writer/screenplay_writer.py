@@ -1,6 +1,5 @@
 import re
 import yaml
-import os
 from pathlib import Path
 from crewai import Agent, Task, Crew, Process
 from dotenv import load_dotenv
