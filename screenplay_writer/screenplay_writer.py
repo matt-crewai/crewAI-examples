@@ -1,60 +1,46 @@
 import re
 import yaml
 import os
-
+from pathlib import Path
 from crewai import Agent, Task, Crew, Process
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Use absolute paths
-agents_config_path = os.path.join(os.getcwd(), 'config/agents.yaml')
-tasks_config_path = os.path.join(os.getcwd(), 'config/tasks.yaml')
-
+# Use Path for file locations
+current_dir = Path.cwd()
+agents_config_path = current_dir / "config" / "agents.yaml"
+tasks_config_path = current_dir / "config" / "tasks.yaml"
 
 # Load YAML configuration files
-with open('config/agents.yaml', 'r') as file:
+with open(agents_config_path, "r") as file:
     agents_config = yaml.safe_load(file)
 
-with open('config/tasks.yaml', 'r') as file:
+with open(tasks_config_path, "r") as file:
     tasks_config = yaml.safe_load(file)
 
 ## Define Agents
 spamfilter = Agent(
-  config=agents_config['spamfilter'],
-  allow_delegation=False,
-  verbose=True
+    config=agents_config["spamfilter"], allow_delegation=False, verbose=True
 )
 
-analyst = Agent(
-  config=agents_config['analyst'],
-  allow_delegation=False,
-  verbose=True
-)
+analyst = Agent(config=agents_config["analyst"], allow_delegation=False, verbose=True)
 
 scriptwriter = Agent(
-  config=agents_config['scriptwriter'],
-  allow_delegation=False,
-  verbose=True
+    config=agents_config["scriptwriter"], allow_delegation=False, verbose=True
 )
 
 formatter = Agent(
-  config=agents_config['formatter'],
-  allow_delegation=False,
-  verbose=True
+    config=agents_config["formatter"], allow_delegation=False, verbose=True
 )
 
 
-scorer = Agent(
-  config=agents_config['scorer'],
-  allow_delegation=False,
-  verbose=True
-)
+scorer = Agent(config=agents_config["scorer"], allow_delegation=False, verbose=True)
 
 
-#this is one example of a public post in the newsgroup alt.atheism
-#try it out yourself by replacing this with your own email thread or text or ...
-discussion = '''From: keith@cco.caltech.edu (Keith Allan Schneider)
+# this is one example of a public post in the newsgroup alt.atheism
+# try it out yourself by replacing this with your own email thread or text or ...
+discussion = """From: keith@cco.caltech.edu (Keith Allan Schneider)
 Subject: Re: <Political Atheists?
 Organization: California Institute of Technology, Pasadena
 Lines: 50
@@ -110,58 +96,58 @@ by your logic, administer as minimum as punishment as possible, to avoid
 violating the liberty or happiness of an innocent person?
 
 keith
-'''
+"""
 
 # Filter out spam and vulgar posts
 task0 = Task(
-    description=tasks_config['task0']['description'],
-    expected_output=tasks_config['task0']['expected_output'],
-    agent=spamfilter    
-    )
+    description=tasks_config["task0"]["description"],
+    expected_output=tasks_config["task0"]["expected_output"],
+    agent=spamfilter,
+)
 result = task0.execute()
 if "STOP" in result:
-    #stop here and proceed to next post
-    print('This spam message will be filtered out')
+    # stop here and proceed to next post
+    print("This spam message will be filtered out")
 
 # process post with a crew of agents, ultimately delivering a well formatted dialogue
 task1 = Task(
-    description=tasks_config['task1']['description'],
-    expected_output=tasks_config['task1']['expected_output'],
-    agent=analyst 
+    description=tasks_config["task1"]["description"],
+    expected_output=tasks_config["task1"]["expected_output"],
+    agent=analyst,
 )
 
 task2 = Task(
-    description=tasks_config['task2']['description'],
-    expected_output=tasks_config['task2']['expected_output'],
-    agent=scriptwriter 
+    description=tasks_config["task2"]["description"],
+    expected_output=tasks_config["task2"]["expected_output"],
+    agent=scriptwriter,
 )
 
 task3 = Task(
-    description=tasks_config['task3']['description'],
-    expected_output=tasks_config['task3']['expected_output'],
-    agent=formatter 
+    description=tasks_config["task3"]["description"],
+    expected_output=tasks_config["task3"]["expected_output"],
+    agent=formatter,
 )
 crew = Crew(
-  agents=[analyst, scriptwriter,formatter],
-  tasks=[task1, task2, task3],
-  verbose=2, # Crew verbose more will let you know what tasks are being worked on, you can set it to 1 or 2 to different logging levels
-  process=Process.sequential # Sequential process will have tasks executed one after the other and the outcome of the previous one is passed as extra content into this next.
+    agents=[analyst, scriptwriter, formatter],
+    tasks=[task1, task2, task3],
+    verbose=2,  # Crew verbose more will let you know what tasks are being worked on, you can set it to 1 or 2 to different logging levels
+    process=Process.sequential,  # Sequential process will have tasks executed one after the other and the outcome of the previous one is passed as extra content into this next.
 )
 
 result = crew.kickoff()
 
-#get rid of directions and actions between brackets, eg: (smiling)
-result = re.sub(r'\(.*?\)', '', result)
+# get rid of directions and actions between brackets, eg: (smiling)
+result = re.sub(r"\(.*?\)", "", result)
 
-print('===================== end result from crew ===================================')
+print("===================== end result from crew ===================================")
 print(result)
-print('===================== score ==================================================')
+print("===================== score ==================================================")
 task4 = Task(
-    description=tasks_config['task4']['description'],
-    expected_output=tasks_config['task4']['expected_output'],
+    description=tasks_config["task4"]["description"],
+    expected_output=tasks_config["task4"]["expected_output"],
     agent=scorer,
 )
 
 score = task4.execute()
-score = score.split('\n')[0]  #sometimes an explanation comes after score, ignore
-print(f'Scoring the dialogue as: {score}/10')
+score = score.split("\n")[0]  # sometimes an explanation comes after score, ignore
+print(f"Scoring the dialogue as: {score}/10")
